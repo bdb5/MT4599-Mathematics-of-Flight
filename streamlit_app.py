@@ -9,6 +9,12 @@ Created on Sun Mar  3 20:57:51 2024
 
 import streamlit as st
 import numpy as np
-import matplotlib as plt
+
+from scipy import constants
+
+print(constants.liter)
+
+
+#import matplotlib as plt
 st.write('i hate you', np.pi)
 
