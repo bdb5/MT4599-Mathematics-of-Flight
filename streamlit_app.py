@@ -5,5 +5,4 @@ Created on Sun Mar  3 20:57:51 2024
 
 @author: benbroughton
 """
-
-print('hello world')
+st.text('Fixed width text')
