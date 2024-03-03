@@ -5,4 +5,6 @@ Created on Sun Mar  3 20:57:51 2024
 
 @author: benbroughton
 """
-st.text('Fixed width text')
+import streamlit as st
+
+st.write("hello world")
