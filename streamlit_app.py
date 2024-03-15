@@ -74,7 +74,7 @@ with st.sidebar:
         gamma_dist_original = gamma_dist
         fix_Cl = st.slider('Please select your target Cl for cruise', 0.4, 0.6, 0.5, 0.01)
         S = fix_Cl/(2*np.trapz(gamma_dist_original,dx=0.01))
-        st.write(fix_Cl, 2*np.trapz(gamma_dist_original,dx=0.01), S)
+        st.write('Recalculating gamma using scale factor ',S)
         gamma_dist = S*gamma_dist
 
     
@@ -323,6 +323,10 @@ decor()
 
 with col2A:
     st.pyplot(fig1)
+    comp_plot = st.button("Save wing for comparison", type = "secondary", use_container_width=True)
+    if comp_plot:
+        with st.popover("Open popover"):
+            st.markdown("Hello World 👋")
 
 with col1B:
     st.pyplot(fig2)
@@ -345,8 +349,9 @@ if not allow_flaps:
 
 else:
     series = pd.Series([Cl, Adapt, Zero, max_camber, mc_chord], index=["Coefficient of lift", "Angle of Adaption", "Angle of Zero Lift", "Maximum Camber", "Max Camber Position"])
+    series_flap_delta = pd.Series([round(delta_Cl,4), round(delta_Adapt,4), round(delta_Zero,4), "-", "-"], index=["Coefficient of lift", "Angle of Adaption", "Angle of Zero Lift", "Maximum Camber", "Max Camber Position"])
     series_flap = pd.Series([Cl_flap, Adapt_flap, Zero_flap, max_camber, mc_chord], index=["Coefficient of lift", "Angle of Adaption", "Angle of Zero Lift", "Maximum Camber", "Max Camber Position"])
-    df = pd.DataFrame({'Values':series, 'Values Adjusted For Flaps':series_flap})
+    df = pd.DataFrame({'Values':series, 'Flap Delta':series_flap_delta, 'Values Adjusted For Flaps':series_flap})
     st.dataframe(df, use_container_width=True)
 
 st.header("4 Digit NACA Airfoil Approximation")
@@ -354,3 +359,6 @@ if max_camber < 0.1:
     NACA_identifier(max_camber, mc_chord, thickness)
 else:
     st.write("The maximum camber of this airfoil is too large to be approximate in 4 digit NACA form.")
+
+st.header("Airfoil Profile Comparison")
+col1C, col2C = st.columns(2)

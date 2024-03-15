@@ -1,7 +1,7 @@
 numpy
 pandas
 pydeck
-streamlit
+streamlit == 1.32.0
 matplotlib
 scipy
 
