@@ -8,78 +8,107 @@ Created on Sun Mar  3 20:57:51 2024
 
 import streamlit as st
 import numpy as np
+import pandas as pd
 from scipy import constants
 from scipy.interpolate import CubicSpline
 import scipy.integrate as it
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker 
 from matplotlib.ticker import AutoMinorLocator, FixedLocator
+st.set_page_config(layout="wide", page_title="bdb5 Airfoil Design")
+st.title("The Thin Line Between Flying and Falling")
+st.subheader("The Inverse Design of Wings Using Thin Airfoil")
 
-input_form = st.selectbox(
-   "How would you like to define your pressure distribution?",
-   ("Manually", "CSV"),
-   index=0,
-   placeholder="Select input method...",
-)
+with st.sidebar:
+    input_form = st.selectbox(
+    "How would you like to define your pressure distribution?",
+    ("Manually", "CSV"),
+    index=0,
+    placeholder="Select input method...",
+    )
 
-allow_negative = st.toggle('Allow Negative Values for Pressure Distribution')
-thickness = st.slider('Please select airfoil thickness', 0.01, 0.2)
-if not allow_negative:
-    sliderlim = 0.0
-    plotlim = -0.1
-else:
-    sliderlim = -2.0
-    plotlim = -0.5
-if input_form == "Manually":
-    A = st.slider('Please select point A value', sliderlim, 2.0, 0.0)
-    B = st.slider('Please select point B value', sliderlim, 2.0, 0.0)
-    C = st.slider('Please select point C value', sliderlim, 2.0, 0.0)
-    D = st.slider('Please select point D value', sliderlim, 2.0, 0.0)
-    E = st.slider('Please select point E value', sliderlim, 2.0, 0.0)
-    F = st.slider('Please select point F value', sliderlim, 2.0, 0.0)
+    allow_negative = st.toggle('Allow Negative Values for Pressure Distribution')
+    with st.expander("Airfoil Properties", True):
+
+        thickness = st.slider('Please select airfoil thickness', 0.01, 0.2)
+
+        if not allow_negative:
+            sliderlim = 0.0
+            plotlim = -0.1
+        else:
+            sliderlim = -2.0
+            plotlim = -0.5
+        if input_form == "Manually":
+            A = st.slider('Please select point A value', sliderlim, 1.5, 0.0)
+            B = st.slider('Please select point B value', sliderlim, 1.5, 0.0)
+            C = st.slider('Please select point C value', sliderlim, 1.5, 0.0)
+            D = st.slider('Please select point D value', sliderlim, 1.5, 0.0)
+            E = st.slider('Please select point E value', sliderlim, 1.5, 0.0)
+            F = st.slider('Please select point F value', sliderlim, 1.5, 0.0)
 
 
-    x_val = [0, 0.2, 0.4, 0.6, 0.8, 1]
-    y_val= [A, B, C, D, E, F]
+            x_val = [0, 0.2, 0.4, 0.6, 0.8, 1]
+            y_val= [A, B, C, D, E, F]
+            f = CubicSpline(x_val, y_val, bc_type='natural')
+            x = np.linspace(0, 1.01, 101)
+            gamma_dist = f(x)
+        if input_form == "CSV":
+            x_val = []
+            y_val = []
+            input_csv = st.text_input('Insert values here. Ensure centered on x axis')
+            coords = input_csv.split()
+            for i in coords:
+                x_str, y_str = i.split(",")
+                x_val.append(float(x_str))
+                y_val.append(float(y_str))
 
-if input_form == "CSV":
-    x_val = []
-    y_val = []
-    input_csv = st.text_input('Insert values here. Ensure centered on x axis')
-    coords = input_csv.split()
-    for i in coords:
-        x_str, y_str = i.split(",")
-        x_val.append(float(x_str))
-        y_val.append(float(y_str))
+    allow_flaps = st.toggle('Add Flap to Airfoil')
+    if allow_flaps:
+        with st.expander("Flap Properties", True):
+            flap_length = st.slider('Please select your flap length', 0.01, 0.25, 0.01)
+            flap_degrees = st.slider('Please select your flap angle', -10.0, 10.0, 0.0, 0.1)
+            flap_angle = flap_degrees*np.pi/180
 
-allow_flaps = st.toggle('Add Flap to Airfoil')
-if allow_flaps:
-    flap_length = st.slider('Please select your flap length', 0.01, 0.25, 0.01)
-    flap_degrees = st.slider('Please select your flap angle', 0.0, 10, 0, 0.1)
-    flap_angle = flap_degrees*np.pi/180
+    fix_cruise = st.toggle('Scale Load Distribution for Cruise')
+    if fix_cruise:
+        gamma_dist_original = gamma_dist
+        fix_Cl = st.slider('Please select your target Cl for cruise', 0.4, 0.6, 0.5, 0.01)
+        S = fix_Cl/(2*np.trapz(gamma_dist_original,dx=0.01))
+        st.write(fix_Cl, 2*np.trapz(gamma_dist_original,dx=0.01), S)
+        gamma_dist = S*gamma_dist
 
-f = CubicSpline(x_val, y_val, bc_type='natural')
-x = np.linspace(0, 1.01, 101)
-gamma_dist = f(x)
+    
+
 
 if not allow_negative:
     replace_negatives = np.vectorize(lambda x: 0 if x < 0 else x)
     gamma_dist = replace_negatives(gamma_dist)
 
-fig = plt.figure(0)
-plt.plot(x, gamma_dist, 'b')
-plt.plot(x_val, y_val, 'ro')
-if not allow_negative:
-    plt.ylim(-0.1,2.1)
+col1A, col2A = st.columns([4, 5])
+if not fix_cruise:
+    st.header("Important Plots")
 else:
-    plt.ylim(-2.1,2.1)
-plt.title('Cubic Spline Interpolation - note that below zero values could be an \
-          issue - go through the list and fox to zero when negative')
-plt.xlabel('x')
-plt.ylabel('y')
-st.pyplot(fig)
-st.write('This gives a coefficient of lift')
-
+    st.header("Important Performance Metrics - all scaled for $C_{l}$")
+col1B, col2B, col3B = st.columns(3)
+with col1A:
+    fig = plt.figure(0)
+    if not fix_cruise:
+        plt.plot(x, gamma_dist, 'b')
+        plt.plot(x_val, y_val, 'ro')
+    else:
+        plt.plot(x, gamma_dist_original, 'b', label = 'Original')
+        plt.plot(x_val, y_val, 'ro')
+        plt.plot(x, gamma_dist, 'g', label = 'Scaled')
+        plt.legend()
+    if not allow_negative:
+        plt.ylim(-0.1,2.1)
+    else:
+        plt.ylim(-2.1,2.1)
+    plt.title('Cubic Spline Interpolation of Load Distribution')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    st.pyplot(fig)
+    st.write(np.round(min(np.gradient(gamma_dist)),5))
 
 
 ######### STEALING CODE FROM PREVIOUS THING ##########
@@ -187,8 +216,13 @@ def NACA_identifier(max_camber, mc_chord, thickness):
     M = int(round(max_camber*100,0))
     P = int(round(mc_chord*10,0))
     XX = str(int(thickness*100)).zfill(2)
-    print(f"This is approximately a NACA {M}{P}{XX} airfoil")
-    
+    st.subheader(f"The closest 4 digit NACA airfoil to this the NACA {M}{P}{XX} airfoil.")
+    st.write("4 digit NACA airfoils are expressed in the form $MPXX$, where:")
+    st.markdown(f"- $M$ is the maximum camber divided by 100. Here, $M={M}$ as the camber is {max_camber} or {M}$\%$ of the chord")
+    st.markdown(f"- $P$ is the position of the maximum camber divided by 10. Here, $P={P}$ so the maximum camber is at {mc_chord} or {P}$\%$ of the chord")
+    st.markdown(f"- $XX$ is the thickness divided by 100. Here, $XX={XX}$ so the thickness is {thickness} or {int(thickness*100)}$\%$ of the chord.")
+    st.write("Due to the nature of the 4 digits, this appoximation is limited for a maximum camber of 0.1")
+    st.write("Based on the classification of NACA 4 Digit Airfoils available at [airfoiltools.com](%s): " %"http://airfoiltools.com/airfoil/naca4digit")
 
 ################################### VALUES ####################################
 
@@ -236,17 +270,16 @@ def decor():
     plt.gca().grid(which = 'minor')
     plt.gca().xaxis.set_minor_locator(AutoMinorLocator(2))
     plt.gca().set_axisbelow(True)
-    
+
 fig1 = plt.figure(1)
 plt.ylim(-0.1, 0.5)
 plt.gca().set_aspect(0.5)
-plt.title(f"Cambered Airfoil Profile at Zero Incidence\n Thickness: {thickness}, Coefficient of Lift: {Cl}")
+plt.title(f"Cambered Airfoil Profile at Zero Incidence\n Thickness: {thickness}, Coefficient of Lift: {np.round(Cl,2)}")
 plt.plot(x, camber_line, color = 'k', linewidth = 0.5)
 plt.plot(x, upper_surface, color = 'k', linewidth = 0.75)
 plt.plot(x, lower_surface, color = 'k', linewidth = 0.75)
 if allow_flaps:
     mask = x > (1-flap_length) 
-    print(mask)
     plt.plot(x[mask], camber_line_flap[mask], color = 'red')
     plt.plot(x[mask], upper_surface_flap[mask], color = 'red')
     plt.plot(x[mask], lower_surface_flap[mask], color = 'red')
@@ -260,7 +293,10 @@ plt.title("Airfoil Surface Velocities")
 #plt.plot(x, lifting_velocity_adapted, color = 'r', linewidth = 0.75, label = 'Lifting Velocity Component')
 plt.plot(x, upper_surface_velocity, color = 'orange', linewidth = 1, label = 'Upper Surface Velocity')
 plt.plot(x, lower_surface_velocity, color = 'c', linewidth = 1, label = 'Lower Surface Velocity')
-plt.legend(loc="center right")
+plt.legend(loc="center right")    
+plt.xlabel('$x/c$')
+plt.ylabel('v/V')
+
 decor()
 
 fig3 = plt.figure(3)
@@ -269,6 +305,8 @@ plt.gca().invert_yaxis()
 plt.plot(x,upper_surface_pressure, color = 'orange', label = 'Upper Surface Pressure')
 plt.plot(x,lower_surface_pressure, color = 'c', label = 'Lower Surface Pressure')
 plt.legend(loc="center right")
+plt.xlabel('$x/c$')
+plt.ylabel('$C_{p}$')
 decor()
 
 fig4 = plt.figure(4)
@@ -281,20 +319,38 @@ plt.xlabel('$alpha$')
 plt.ylabel('$C_{l}$')
 decor()
 
-st.pyplot(fig1)
-st.pyplot(fig2)
-st.pyplot(fig3)
-st.pyplot(fig4)
+
+
+with col2A:
+    st.pyplot(fig1)
+
+with col1B:
+    st.pyplot(fig2)
+with col2B:
+    st.pyplot(fig3)
+with col3B:
+    st.pyplot(fig4)
+
+if not fix_cruise:
+    st.header("Important Performance Metrics")
+else:
+    st.header("Important Performance Metrics - all scaled for $C_{l}$")
+
 
 
 if not allow_flaps:
-    st.write("Coefficient of lift:", Cl)
-    st.write("Angle of Adaption", Adapt)
-    st.write("Angle of Zero Lift", Zero)  
-else:
-    st.write("Coefficient of Lift:", Cl, ", Coefficient of Lift adjusted for flaps:", Cl_flap)
-    st.write("Angle of Adaption", Adapt, ", Angle of Adaption adjusted for flaps:", Adapt_flap)
-    st.write("Angle of Zero Lift", Zero, ", Angle of Zero Lift adjusted for flaps:", Zero_flap)
+    series = pd.Series([Cl, Adapt, Zero, max_camber, mc_chord], index=["Coefficient of lift", "Angle of Adaption", "Angle of Zero Lift", "Maximum Camber", "Max Camber Position"])
+    df = pd.DataFrame(data=series, index=["Coefficient of lift", "Angle of Adaption", "Angle of Zero Lift", "Maximum Camber", "Max Camber Position"], columns=["Values"])
+    st.dataframe(df, use_container_width=True)
 
-st.write("Max Camber is", max_camber, "at", mc_chord)
-NACA_identifier(max_camber, mc_chord, thickness)
+else:
+    series = pd.Series([Cl, Adapt, Zero, max_camber, mc_chord], index=["Coefficient of lift", "Angle of Adaption", "Angle of Zero Lift", "Maximum Camber", "Max Camber Position"])
+    series_flap = pd.Series([Cl_flap, Adapt_flap, Zero_flap, max_camber, mc_chord], index=["Coefficient of lift", "Angle of Adaption", "Angle of Zero Lift", "Maximum Camber", "Max Camber Position"])
+    df = pd.DataFrame({'Values':series, 'Values Adjusted For Flaps':series_flap})
+    st.dataframe(df, use_container_width=True)
+
+st.header("4 Digit NACA Airfoil Approximation")
+if max_camber < 0.1:
+    NACA_identifier(max_camber, mc_chord, thickness)
+else:
+    st.write("The maximum camber of this airfoil is too large to be approximate in 4 digit NACA form.")
