@@ -52,6 +52,11 @@ if input_form == "CSV":
         x_val.append(float(x_str))
         y_val.append(float(y_str))
 
+allow_flaps = st.toggle('Add Flap to Airfoil')
+if allow_flaps:
+    flap_length = st.slider('Please select your flap length', 0.01, 0.25, 0.01)
+    flap_degrees = st.slider('Please select your flap angle', 0.0, 10, 0, 0.1)
+    flap_angle = flap_degrees*np.pi/180
 
 f = CubicSpline(x_val, y_val, bc_type='natural')
 x = np.linspace(0, 1.01, 101)
@@ -74,7 +79,6 @@ plt.xlabel('x')
 plt.ylabel('y')
 st.pyplot(fig)
 st.write('This gives a coefficient of lift')
-
 
 
 
@@ -163,6 +167,29 @@ def zero_lift(c_lift, alpha_adapt):
     return alpha_adapt - c_lift/(2*np.pi)
 
 
+################################### FLAPS #####################################
+
+def flap_line(flap_length, flap_angle, x):
+    store = []
+    step = 0
+    for i in range(len(x)):
+        if x[i] <= (1-flap_length):
+            store.append(0)
+        else:
+            store.append(-step*flap_angle)
+            step += 0.01
+    return store
+
+
+################################# NACA FORM ###################################
+
+def NACA_identifier(max_camber, mc_chord, thickness):
+    M = int(round(max_camber*100,0))
+    P = int(round(mc_chord*10,0))
+    XX = str(int(thickness*100)).zfill(2)
+    print(f"This is approximately a NACA {M}{P}{XX} airfoil")
+    
+
 ################################### VALUES ####################################
 
 
@@ -174,6 +201,7 @@ lower_surface_velocity = np.subtract(symmetric_velocity, lifting_velocity_adapte
 upper_surface_pressure = np.multiply(upper_surface_velocity,-2)
 lower_surface_pressure = np.multiply(lower_surface_velocity, -2)
 Cl = c_lift(gamma_dist)
+
 # Airfoil Profile
 camber_profile = it.cumtrapz(lift_two_point_gaussian_quadrature(x,gamma_dist), dx=0.01, initial = 0)
 camber_line = adjusted_camber_profile(camber_profile)
@@ -182,8 +210,25 @@ lower_surface = camber_line - f(x)
 Adapt = alpha_adapt(camber_profile)
 Zero = zero_lift(Cl, Adapt)
 
+# Flaps
+if allow_flaps:
+    Flap = flap_line(flap_length, flap_angle, x)
+    camber_line_flap = np.add(camber_line, Flap)
+    upper_surface_flap = camber_line_flap + f(x)
+    lower_surface_flap = camber_line_flap - f(x)
+    theta_hinge = np.arccos(2*flap_length - 1)
+    delta_Cl = 2*flap_angle*(np.pi - theta_hinge + np.sin(theta_hinge))
+    delta_Zero = -(flap_angle/np.pi)*(np.pi - theta_hinge + np.sin(theta_hinge))
+    delta_Adapt = -flap_angle*(1 - theta_hinge/np.pi)
+    Cl_flap = Cl + delta_Cl
+    Adapt_flap = Adapt + delta_Adapt
+    Zero_flap = Zero + delta_Zero
+else:
+    flap_length, camber_line_flap, upper_surface_flap, lower_surface_flap, Zero_flap = 0, 0, 0, 0, 0
 
-
+# NACA Designation
+max_camber = max(camber_line)
+mc_chord = x[camber_line.index(max(camber_line))]
 ############################# PLOTTING RESULTS ################################
 
 def decor():
@@ -193,12 +238,20 @@ def decor():
     plt.gca().set_axisbelow(True)
     
 fig1 = plt.figure(1)
-plt.ylim(plotlim, 0.5)
+plt.ylim(-0.1, 0.5)
 plt.gca().set_aspect(0.5)
 plt.title(f"Cambered Airfoil Profile at Zero Incidence\n Thickness: {thickness}, Coefficient of Lift: {Cl}")
 plt.plot(x, camber_line, color = 'k', linewidth = 0.5)
 plt.plot(x, upper_surface, color = 'k', linewidth = 0.75)
 plt.plot(x, lower_surface, color = 'k', linewidth = 0.75)
+if allow_flaps:
+    mask = x > (1-flap_length) 
+    print(mask)
+    plt.plot(x[mask], camber_line_flap[mask], color = 'red')
+    plt.plot(x[mask], upper_surface_flap[mask], color = 'red')
+    plt.plot(x[mask], lower_surface_flap[mask], color = 'red')
+plt.xlabel('$x/c$')
+plt.ylabel('$y$')
 decor()
 
 fig2 = plt.figure(2)
@@ -220,9 +273,12 @@ decor()
 
 fig4 = plt.figure(4)
 plt.title('Angle of Attack and Coefficient of Lift')
-plt.gca().set_aspect(0.2)
-plt.xlim(-0.175,0.35)
-plt.plot(np.arange(-0.175, 0.35, 0.02), 2*np.pi*(np.arange(-0.175, 0.35, 0.02) - Zero))
+plt.plot(np.arange(-0.1, 0.1, 0.02), 2*np.pi*(np.arange(-0.1, 0.1, 0.02) - Zero), label = 'No Flaps')
+if allow_flaps:
+    plt.plot(np.arange(-0.1, 0.1, 0.02), 2*np.pi*(np.arange(-0.1, 0.1, 0.02) - Zero_flap), label = 'With Flaps')
+    plt.legend(loc="center right")
+plt.xlabel('$alpha$')
+plt.ylabel('$C_{l}$')
 decor()
 
 st.pyplot(fig1)
@@ -230,6 +286,15 @@ st.pyplot(fig2)
 st.pyplot(fig3)
 st.pyplot(fig4)
 
-st.write("Coefficient of lift:", Cl)
-st.write("Angle of Adaption", Adapt)
-st.write("Angle of Zero Lift", Zero)
+
+if not allow_flaps:
+    st.write("Coefficient of lift:", Cl)
+    st.write("Angle of Adaption", Adapt)
+    st.write("Angle of Zero Lift", Zero)  
+else:
+    st.write("Coefficient of Lift:", Cl, ", Coefficient of Lift adjusted for flaps:", Cl_flap)
+    st.write("Angle of Adaption", Adapt, ", Angle of Adaption adjusted for flaps:", Adapt_flap)
+    st.write("Angle of Zero Lift", Zero, ", Angle of Zero Lift adjusted for flaps:", Zero_flap)
+
+st.write("Max Camber is", max_camber, "at", mc_chord)
+NACA_identifier(max_camber, mc_chord, thickness)
