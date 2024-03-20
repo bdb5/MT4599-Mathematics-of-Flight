@@ -289,7 +289,7 @@ def stall(gamma_dist):
 
 # Velocity, Pressure, and Lift Over Airfoil
 symmetric_velocity = sym_two_point_gaussian_quadrature()
-lifting_velocity_adapted = gamma_dist
+lifting_velocity_adapted = np.multiply(gamma_dist,0.5)
 upper_surface_velocity = np.add(symmetric_velocity, lifting_velocity_adapted)
 lower_surface_velocity = np.subtract(symmetric_velocity, lifting_velocity_adapted)
 upper_surface_pressure = np.multiply(upper_surface_velocity,-2)
@@ -350,7 +350,7 @@ def profile_plot(camber_line,upper_surface,lower_surface,thickness, Cl, plotlim,
     decor()
 
 def velocity_plot(upper_surface_velocity,lower_surface_velocity):
-    plt.ylim(-1, 3)
+    plt.ylim(-1, 2.25)
     plt.title("Airfoil Surface Velocities")
     plt.plot(x, upper_surface_velocity, color = 'orange', linewidth = 1, label = 'Upper Surface Velocity')
     plt.plot(x, lower_surface_velocity, color = 'c', linewidth = 1, label = 'Lower Surface Velocity')
@@ -360,7 +360,7 @@ def velocity_plot(upper_surface_velocity,lower_surface_velocity):
     decor()
 
 def pressure_plot(upper_surface_pressure,lower_surface_pressure):
-    plt.ylim(-6, 6)
+    plt.ylim(-4.5, 4.5)
     plt.title('Airfoil Surface Pressure')
     plt.gca().invert_yaxis()
     plt.plot(x,upper_surface_pressure, color = 'orange', label = 'Upper Surface Pressure')
