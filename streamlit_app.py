@@ -89,6 +89,7 @@ with st.sidebar:
             x = np.linspace(0, 1.01, 101)
             gamma_dist = f(x)
         if input_form == "CSV":
+            st.write("Enter coordinates in the form x1,y1 x2,y2 x3,y3")
             x_val = []
             y_val = []
             input_csv = st.text_input('Insert values here. Ensure centered on x axis')
