@@ -53,7 +53,8 @@ if 'Slot_gamma' not in st.session_state:
     st.session_state.Slot_Cl_flap = [None, None]
     st.session_state.Slot_Adapt_flap = [None, None]
     st.session_state.Slot_Zero_flap = [None, None]
-
+    st.session_state.Slot_plotlim = [None, None] 
+    st.session_state.Slot_allow_negative = [False, False] 
 with st.sidebar:
     input_form = st.selectbox(
     "How would you like to define your pressure distribution?",
@@ -96,7 +97,9 @@ with st.sidebar:
                 x_str, y_str = i.split(",")
                 x_val.append(float(x_str))
                 y_val.append(float(y_str))
-
+            f = CubicSpline(x_val, y_val, bc_type='natural')
+            x = np.linspace(0, 1.01, 101)
+            gamma_dist = f(x)
     allow_flaps = st.toggle('Add Flap to Airfoil')
     if allow_flaps:
         with st.expander("Flap Properties", True):
@@ -328,9 +331,9 @@ def decor():
     plt.gca().xaxis.set_minor_locator(AutoMinorLocator(2))
     plt.gca().set_axisbelow(True)
 
-def profile_plot(camber_line,upper_surface,lower_surface,thickness, Cl, allow_flaps,\
+def profile_plot(camber_line,upper_surface,lower_surface,thickness, Cl, plotlim, allow_flaps,\
                  flap_length, camber_line_flap, upper_surface_flap, lower_surface_flap):
-    plt.ylim(-0.1, 0.5)
+    plt.ylim(plotlim, 0.5)
     plt.gca().set_aspect(0.5)
     plt.title(f"Cambered Airfoil Profile at Zero Incidence\n Thickness: {thickness}, Coefficient of Lift: {np.round(Cl,2)}")
     plt.plot(x, camber_line, color = 'k', linewidth = 0.5)
@@ -380,7 +383,7 @@ col2A_1, col2A_2 = st.columns(2)
 
 with col2A:
     fig1 = plt.figure(1)
-    profile_plot(camber_line,upper_surface,lower_surface,thickness, Cl, allow_flaps,\
+    profile_plot(camber_line,upper_surface,lower_surface,thickness, Cl, plotlim, allow_flaps,\
                         flap_length, camber_line_flap, upper_surface_flap, lower_surface_flap)
     st.pyplot(fig1)
     with st.expander("Save airfoil for comparison"):
@@ -411,6 +414,8 @@ with col2A:
             st.session_state.Slot_Cl_flap[0] = Cl_flap
             st.session_state.Slot_Adapt_flap[0] = Adapt_flap
             st.session_state.Slot_Zero_flap[0] = Zero_flap
+            st.session_state.Slot_plotlim[0] = plotlim
+            st.session_state.Slot_allow_negative[0] = allow_negative
             save_plot_A = False
         save_plot_B = st.button("Save to Slot B")
         if save_plot_B:
@@ -439,6 +444,8 @@ with col2A:
             st.session_state.Slot_Cl_flap[1] = Cl_flap
             st.session_state.Slot_Adapt_flap[1] = Adapt_flap
             st.session_state.Slot_Zero_flap[1] = Zero_flap
+            st.session_state.Slot_plotlim[1] = plotlim
+            st.session_state.Slot_allow_negative[1] = allow_negative
             save_plot_B = False
 with col1B:
     fig2 = plt.figure(2)
@@ -492,7 +499,7 @@ with col1C:
         fig15 = plt.figure(15)
         decor()
         plt.plot(x, st.session_state.Slot_gamma[0], 'b')
-        if not allow_negative:
+        if not st.session_state.Slot_allow_negative[0]:
             plt.ylim(-0.1,2.1)
         else:
             plt.ylim(-2.1,2.1)
@@ -503,7 +510,7 @@ with col1C:
         fig5 = plt.figure(5)
         profile_plot(np.squeeze(st.session_state.Slot_camber_line[0]),np.squeeze(st.session_state.Slot_upper_surface[0]),\
                      np.squeeze(st.session_state.Slot_lower_surface[0]),np.squeeze(st.session_state.Slot_thickness[0]), \
-                     np.squeeze(st.session_state.Slot_Cl[0]), np.squeeze(st.session_state.Slot_allow_flaps[0]),\
+                     np.squeeze(st.session_state.Slot_Cl[0]), np.squeeze(st.session_state.Slot_plotlim[0]), np.squeeze(st.session_state.Slot_allow_flaps[0]),\
                      np.squeeze(st.session_state.Slot_flap_length[0]), np.squeeze(st.session_state.Slot_camber_line_flap[0]),\
                      np.squeeze(st.session_state.Slot_upper_surface_flap[0]), np.squeeze(st.session_state.Slot_lower_surface_flap[0]))
         st.pyplot(fig5)
@@ -538,7 +545,7 @@ with col2C:
         fig14 = plt.figure(14)
         plt.plot(x, st.session_state.Slot_gamma[1], 'b')
         decor()
-        if not allow_negative:
+        if not st.session_state.Slot_allow_negative[1]:
             plt.ylim(-0.1,2.1)
         else:
             plt.ylim(-2.1,2.1)
@@ -549,7 +556,7 @@ with col2C:
         fig9 = plt.figure(9)
         profile_plot(np.squeeze(st.session_state.Slot_camber_line[1]),np.squeeze(st.session_state.Slot_upper_surface[1]),\
                      np.squeeze(st.session_state.Slot_lower_surface[1]),np.squeeze(st.session_state.Slot_thickness[1]), \
-                     np.squeeze(st.session_state.Slot_Cl[1]), np.squeeze(st.session_state.Slot_allow_flaps[1]),\
+                     np.squeeze(st.session_state.Slot_Cl[1]), np.squeeze(st.session_state.Slot_plotlim[1]), np.squeeze(st.session_state.Slot_allow_flaps[1]),\
                      np.squeeze(st.session_state.Slot_flap_length[1]), np.squeeze(st.session_state.Slot_camber_line_flap[1]),\
                      np.squeeze(st.session_state.Slot_upper_surface_flap[1]), np.squeeze(st.session_state.Slot_lower_surface_flap[1]))
         st.pyplot(fig9)
@@ -642,3 +649,5 @@ if Slot_reset:
     st.session_state.Slot_Cl_flap = [None, None]
     st.session_state.Slot_Adapt_flap = [None, None]
     st.session_state.Slot_Zero_flap = [None, None]
+    st.session_state.Slot_plotlim = [None, None] 
+    st.session_state.Slot_allow_negative = [False, False] 
