@@ -24,7 +24,7 @@ st.markdown(style_centered, unsafe_allow_html=True)
 st.markdown(style, unsafe_allow_html=True)
 
 st.title("The Thin Line Between Flying and Falling")
-st.markdown("<h3 class='centered'>The Inverse Design of Wings Using Thin Airfoil</h3>", unsafe_allow_html=True)
+st.markdown("<h3 class='centered'>The Inverse Design of Wings Using Thin Airfoil Theory</h3>", unsafe_allow_html=True)
 
 
 if 'Slot_gamma' not in st.session_state:
