@@ -485,10 +485,10 @@ if max_camber < 0.1:
 else:
     st.write("The maximum camber of this airfoil is too large to be approximate in 4 digit NACA form.")
 
-st.header("Stall Characteristic Approximation")
-stall_info = stall(gamma_dist)
-st.subheader(f'{stall(gamma_dist)[0]} Stall is more likely.')
-st.caption(f"This wing is more likely to experience {stall_info[0]} stall as the location of peak pressure is\
+# st.header("Stall Characteristic Approximation")
+# stall_info = stall(gamma_dist)
+# st.subheader(f'{stall(gamma_dist)[0]} Stall is more likely.')
+# st.caption(f"This wing is more likely to experience {stall_info[0]} stall as the location of peak pressure is\
             {stall_info[1]}$\%$ along the chord, and therefore nearer the {stall_info[0]} of the wing")
 
 
