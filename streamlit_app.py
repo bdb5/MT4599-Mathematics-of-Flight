@@ -75,12 +75,12 @@ with st.sidebar:
             sliderlim = -2.0
             plotlim = -0.5
         if input_form == "Manually":
-            A = st.slider('Please select point A value', sliderlim, 1.5, 0.0)
-            B = st.slider('Please select point B value', sliderlim, 1.5, 0.0)
-            C = st.slider('Please select point C value', sliderlim, 1.5, 0.0)
-            D = st.slider('Please select point D value', sliderlim, 1.5, 0.0)
-            E = st.slider('Please select point E value', sliderlim, 1.5, 0.0)
-            F = st.slider('Please select point F value', sliderlim, 1.5, 0.0)
+            A = st.slider('Please select the load at x = 0', sliderlim, 1.5, 0.0)
+            B = st.slider('Please select the load at x = 0.2', sliderlim, 1.5, 0.0)
+            C = st.slider('Please select the load at x = 0.4', sliderlim, 1.5, 0.0)
+            D = st.slider('Please select the load at x = 0.6', sliderlim, 1.5, 0.0)
+            E = st.slider('Please select the load at x = 0.8', sliderlim, 1.5, 0.0)
+            F = st.slider('Please select the load at x = 1', sliderlim, 1.5, 0.0)
 
 
             x_val = [0, 0.2, 0.4, 0.6, 0.8, 1]
@@ -104,8 +104,8 @@ with st.sidebar:
     allow_flaps = st.toggle('Add Flap to Airfoil')
     if allow_flaps:
         with st.expander("Flap Properties", True):
-            flap_length = st.slider('Please select your flap length', 0.01, 0.25, 0.01)
-            flap_degrees = st.slider('Please select your flap angle', -10.0, 10.0, 0.0, 0.1)
+            flap_length = st.slider('Please select your flap length as a percentage of chord length', 0.01, 0.25, 0.01)
+            flap_degrees = st.slider('Please select your flap angle in degrees', -10.0, 10.0, 0.0, 0.1)
             flap_angle = flap_degrees*np.pi/180
 
     fix_cruise = st.toggle('Scale Load Distribution for Cruise')
@@ -150,8 +150,8 @@ with col1A:
     else:
         plt.ylim(-2.1,2.1)
     plt.title('Cubic Spline Interpolation of Load Distribution')
-    plt.xlabel('x')
-    plt.ylabel('y')
+    plt.xlabel('x/c')
+    plt.ylabel('$\\gamma(x)$')
     st.pyplot(fig)
 
 
@@ -346,7 +346,7 @@ def profile_plot(camber_line,upper_surface,lower_surface,thickness, Cl, plotlim,
         plt.plot(x[mask], upper_surface_flap[mask], color = 'red')
         plt.plot(x[mask], lower_surface_flap[mask], color = 'red')
     plt.xlabel('$x/c$')
-    plt.ylabel('$y$')
+    plt.ylabel('$f(x)$')
     decor()
 
 def velocity_plot(upper_surface_velocity,lower_surface_velocity):
@@ -356,7 +356,7 @@ def velocity_plot(upper_surface_velocity,lower_surface_velocity):
     plt.plot(x, lower_surface_velocity, color = 'c', linewidth = 1, label = 'Lower Surface Velocity')
     plt.legend(loc="center right")    
     plt.xlabel('$x/c$')
-    plt.ylabel('v/V')
+    plt.ylabel('$u/U$')
     decor()
 
 def pressure_plot(upper_surface_pressure,lower_surface_pressure):
@@ -376,7 +376,7 @@ def cl_plot(Zero, allow_flaps, Zero_flap):
     if allow_flaps:
         plt.plot(np.arange(-0.1, 0.1, 0.02), 2*np.pi*(np.arange(-0.1, 0.1, 0.02) - Zero_flap), label = 'With Flaps')
         plt.legend(loc="center right")
-    plt.xlabel('$alpha$')
+    plt.xlabel('$\\alpha, radians$')
     plt.ylabel('$C_{l}$')
     decor()
 
@@ -468,28 +468,23 @@ else:
 if not allow_flaps:
     series = pd.Series([Cl, Adapt, Zero, max_camber, mc_chord], index=["Coefficient of lift", "Angle of Adaption", "Angle of Zero Lift", "Maximum Camber", "Max Camber Position"])
     df = pd.DataFrame(data=series, index=["Coefficient of lift", "Angle of Adaption", "Angle of Zero Lift", "Maximum Camber", "Max Camber Position"], columns=["Values"])
+    df.columns = ["Values, angles in radians"] 
     st.dataframe(df, use_container_width=True)
 else:
     series = pd.Series([Cl, Adapt, Zero, max_camber, mc_chord], index=["Coefficient of lift", "Angle of Adaption", "Angle of Zero Lift", "Maximum Camber", "Max Camber Position"])
     series_flap_delta = pd.Series([round(delta_Cl,4), round(delta_Adapt,4), round(delta_Zero,4), "-", "-"], index=["Coefficient of lift", "Angle of Adaption", "Angle of Zero Lift", "Maximum Camber", "Max Camber Position"])
     series_flap = pd.Series([Cl_flap, Adapt_flap, Zero_flap, max_camber, mc_chord], index=["Coefficient of lift", "Angle of Adaption", "Angle of Zero Lift", "Maximum Camber", "Max Camber Position"])
-    df = pd.DataFrame({'Values':series, 'Flap Delta':series_flap_delta, 'Values Adjusted For Flaps':series_flap})
+    df = pd.DataFrame({'Values, angles in radians':series, 'Flap Delta, angles in radians':series_flap_delta, 'Values Adjusted For Flaps, angles in radians':series_flap})
     st.dataframe(df, use_container_width=True)
 
 st.header("4 Digit NACA Airfoil Approximation")
 if max_camber < 0.1:
     NACA_val = NACA_identifier(max_camber, mc_chord, thickness)
     url_template = f"http://airfoiltools.com/airfoil/naca4digit?MNaca4DigitForm[camber]={NACA_val[0]}&MNaca4DigitForm[position]={NACA_val[1]*10}&MNaca4DigitForm[thick]={NACA_val[2]}&MNaca4DigitForm[numPoints]=81&MNaca4DigitForm[cosSpace]=0&MNaca4DigitForm[cosSpace]=1&MNaca4DigitForm[closeTe]=0&yt0=Plot"
-    st.markdown(f"Experimental data for the {NACA_val[0]}{NACA_val[1]}{NACA_val[2]} profile is available [here](%s)" % url_template)
+    
 
 else:
     st.write("The maximum camber of this airfoil is too large to be approximate in 4 digit NACA form.")
-
-# st.header("Stall Characteristic Approximation")
-# stall_info = stall(gamma_dist)
-# st.subheader(f'{stall(gamma_dist)[0]} Stall is more likely.')
-# st.caption(f"This wing is more likely to experience {stall_info[0]} stall as the location of peak pressure is\
-            {stall_info[1]}$\%$ along the chord, and therefore nearer the {stall_info[0]} of the wing")
 
 
 st.header("Airfoil Profile Comparison")
@@ -505,8 +500,8 @@ with col1C:
         else:
             plt.ylim(-2.1,2.1)
         plt.title('Cubic Spline Interpolation of Load Distribution')
-        plt.xlabel('x')
-        plt.ylabel('y')
+        plt.xlabel('$x/c$')
+        plt.ylabel('$\\gamma(x)$')
         st.pyplot(fig15)
         fig5 = plt.figure(5)
         profile_plot(np.squeeze(st.session_state.Slot_camber_line[0]),np.squeeze(st.session_state.Slot_upper_surface[0]),\
@@ -594,12 +589,12 @@ if st.session_state.Slot_gamma[0] is not None and st.session_state.Slot_gamma[1]
             st.subheader('Stall Analysis', divider = 'orange')
             st.caption('More likely to stall')
             st.write(f'As this airfoil has a greater maximum adverse pressure gradient of {min_gradient_0} compared to\
-                     the pressure gradient of the airfoil in Column B: {min_gradient_1}, it is expected that this airfoil is MORE likely to stall')
+                     the pressure gradient of the airfoil in Column B: {round(min_gradient_1,4)}, it is expected that this airfoil is MORE likely to stall')
         with col2C:
             st.subheader('Stall Analysis', divider = 'orange')
             st.caption('Less likely to stall')
             st.write(f'As this airfoil has a smaller maximum adverse pressure gradient of {min_gradient_1} compared to\
-                     the pressure gradient of the airfoil in Column B: {min_gradient_0}, it is expected that this airfoil is LESS likely to stall')
+                     the pressure gradient of the airfoil in Column B: {round(min_gradient_0,4)}, it is expected that this airfoil is LESS likely to stall')
     if min_gradient_0 > min_gradient_1:
         with col1C:
             st.subheader('Stall Analysis', divider = 'orange')
@@ -611,16 +606,7 @@ if st.session_state.Slot_gamma[0] is not None and st.session_state.Slot_gamma[1]
             st.caption('More likely to stall')
             st.write(f'As this airfoil has a greater maximum adverse pressure gradient of {round(min_gradient_1,4)} compared to\
                     the pressure gradient of the airfoil in Column B: {round(min_gradient_0,4)}, it is expected that this airfoil is MORE likely to stall')
-    with col1C:
-        st.caption(f'{stall(np.squeeze(st.session_state.Slot_gamma[0]))[0]} Stall is more likely.')
-        stall_info = stall(np.squeeze(st.session_state.Slot_gamma[0]))
-        st.caption(f"This wing is more likely to experience {stall_info[0]} stall as the location of peak pressure is\
-                   {stall_info[1]}$\%$ along the chord, and therefore nearer the {stall_info[0]} of the wing")
-    with col2C:
-        st.caption(f'{stall(np.squeeze(st.session_state.Slot_gamma[1]))[0]} Stall is more likely.')
-        stall_info = stall(np.squeeze(st.session_state.Slot_gamma[1]))
-        st.caption(f"This wing is more likely to experience {stall_info[0]} stall as the location of peak pressure is\
-                   {stall_info[1]}$\%$ along the chord, and therefore nearer the {stall_info[0]} of the wing")
+
 
 Slot_reset = st.button("Reset Plot Slots", use_container_width=True, type = 'primary')
 
