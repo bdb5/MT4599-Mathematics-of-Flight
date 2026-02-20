@@ -4,4 +4,4 @@ pydeck
 streamlit
 matplotlib
 scipy
-
+altair<5
