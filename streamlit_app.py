@@ -297,7 +297,7 @@ lower_surface_pressure = np.multiply(lower_surface_velocity, -2)
 Cl = c_lift(gamma_dist)
 
 # Airfoil Profile
-camber_profile = it.cumtrapz(lift_two_point_gaussian_quadrature(x,gamma_dist), dx=0.01, initial = 0)
+camber_profile = it.cumulative_trapezoid(lift_two_point_gaussian_quadrature(x,gamma_dist), dx=0.01, initial = 0)
 camber_line = adjusted_camber_profile(camber_profile)
 upper_surface = camber_line + f(x)
 lower_surface = camber_line - f(x)
