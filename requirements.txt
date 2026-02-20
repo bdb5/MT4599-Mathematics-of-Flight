@@ -1,7 +1,7 @@
+streamlit>=1.32
+altair<5
 numpy<2.4
 pandas
-pydeck
-streamlit
-matplotlib
 scipy
-altair<5
+matplotlib
+pydeck
